@@ -22,7 +22,7 @@ namespace MidiDriverOrderForKorg
             this.FullRowSelect = true;
             this.OverrideDoubleBuffered = true;
 
-            // removes the ugly dotted line around focused item
+            // removes the ugly dotted line around the focused item
             SendMessage(this.Handle, WM_CHANGEUISTATE, MakeLong(UIS_SET, UISF_HIDEFOCUS), 0);
         }
 

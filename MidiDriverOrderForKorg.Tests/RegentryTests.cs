@@ -57,14 +57,50 @@ namespace MidiDriverOrderForKorg.Tests
             Assert.AreEqual(outData.Count, idx);
         }
 
-
-        private RegistryEntry CreateEntry(string name, string alias)
+        [Test]
+        public void CheckSortWithMidiAlias()
         {
-            return new RegistryEntry()
-            {
-                DeviceName = name,
-                Alias = alias
-            };
+            var inputData = new LinkedList<RegistryEntry>();
+            inputData.AddLast(CreateEntry("DEV1", "midi"));
+            inputData.AddLast(CreateEntry("DEV2", "midi1"));
+
+            var outData = new List<RegistryEntry>(Utils.SortEntries(inputData));
+            Assert.AreEqual(2, outData.Count);
+            Assert.AreEqual("DEV1", outData[0].DeviceName);
+            Assert.AreEqual("DEV2", outData[1].DeviceName);
+        }
+
+        [Test]
+        public void CheckSortWithMidi0Alias()
+        {
+            var inputData = new LinkedList<RegistryEntry>();
+            inputData.AddLast(CreateEntry("DEV1", "midi0"));
+            inputData.AddLast(CreateEntry("DEV2", "midi1"));
+
+            var outData = new List<RegistryEntry>(Utils.SortEntries(inputData));
+            Assert.AreEqual(2, outData.Count);
+            Assert.AreEqual("DEV1", outData[0].DeviceName);
+            Assert.AreEqual("DEV2", outData[1].DeviceName);
+        }
+
+        [Test]
+        public void CheckSortWithMidiAndMidi0Duplicate()
+        {
+            var inputData = new LinkedList<RegistryEntry>();   
+            inputData.AddLast(CreateEntry("DEV1", "midi"));
+            inputData.AddLast(CreateEntry("DEV2", "midi0"));
+            inputData.AddLast(CreateEntry("DEV3", "midi1"));
+
+            var outData = new List<RegistryEntry>(Utils.SortEntries(inputData));
+            Assert.AreEqual(3, outData.Count);
+            Assert.AreEqual("DEV1", outData[0].DeviceName);
+            Assert.AreEqual("DEV3", outData[1].DeviceName);
+            Assert.AreEqual("DEV2", outData[2].DeviceName);
+        }
+
+        private RegistryEntry CreateEntry(string name, string alias, string driver = null)
+        {
+            return new RegistryEntry(alias, name, driver, null, false, false);
         }
     }
 

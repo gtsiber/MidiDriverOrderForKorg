@@ -1,4 +1,6 @@
 .vs
+.idea
+*.user
 bin
 obj
 

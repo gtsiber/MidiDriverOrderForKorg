@@ -9,10 +9,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("MidiDriverOrderForKorg")]
-[assembly: AssemblyCopyright("Copyright © 2024 - gtsiber@gmail.com")]
+[assembly: AssemblyCopyright("Copyright © 2026 - gtsiber@gmail.com")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
-[assembly: AssemblyInformationalVersion("1.1")]
+[assembly: AssemblyInformationalVersion("1.2")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -8,6 +7,12 @@ namespace MidiDriverOrderForKorg
 {
     public partial class Form1 : Form
     {
+        private const string WdmaudDriver = "wdmaud.drv";
+        private const string Wdmaud2Driver = "wdmaud2.drv";
+        private const string Midi2Msg = "MIDI 2.0 services are installed.\nWe DO NOT recommend using this tool.\nWindows MIDI 2.0 should fix the Korg driver issues.";
+       
+        private bool _hasWdmaud2;
+
         public Form1()
         {
             InitializeComponent();
@@ -47,6 +52,16 @@ namespace MidiDriverOrderForKorg
                 return;
             }
 
+            _hasWdmaud2 = Utils.AreMidiServicesPresent();
+            if (_hasWdmaud2)
+            {
+                foreach (var entry in entries)
+                {
+                    if (entry.Alias == "midi" || entry.Alias == "midi1")
+                        entry.Alias = "";
+                }
+            }
+
             string errorMsg = null;
             try
             {
@@ -57,12 +72,16 @@ namespace MidiDriverOrderForKorg
                 errorMsg = ex.Message;
             }
 
-
             _listView.Items.Clear();
             var hasKorg = false;
             _listView.BeginUpdate();
             try
             {
+                if (_hasWdmaud2)
+                {
+                    AddListViewEntry(new RegistryEntry("midi", "wdmaud - Midi 2.0 driver (locked)", WdmaudDriver, "", false, true));
+                    AddListViewEntry(new RegistryEntry("midi1", "wdmaud2 - Midi 2.0 driver (locked)", Wdmaud2Driver, "", false, true));
+                }
                 foreach (var entry in entries)
                 {
                     AddListViewEntry(entry);
@@ -84,8 +103,12 @@ namespace MidiDriverOrderForKorg
 
         private void UpdateListItemDetails(ListViewItem lv)
         {
-            lv.BackColor = (lv.Index <= Utils.MidiAliasMaxIdx) ? Color.AntiqueWhite : SystemColors.Window;
-            lv.Text = (lv.Index + 1).ToString();
+            var idx = lv.Index;
+            if (_hasWdmaud2 && (idx == 0 || idx == 1))
+                lv.BackColor = Color.Salmon;
+            else
+                lv.BackColor = (idx <= Utils.MidiAliasMaxIdx) ? Color.AntiqueWhite : SystemColors.Window;
+            lv.Text = (idx + 1).ToString();
         }
 
         private ListViewItem GetSelectedListItem()
@@ -102,7 +125,17 @@ namespace MidiDriverOrderForKorg
             var sel = GetSelectedListItem();
             if (sel == null)
                 return;
+
             var idx = sel.Index;
+
+            if (_hasWdmaud2)
+            {
+                if (idx == 0 || idx == 1)
+                    return;
+                if (moveUp && idx == 2)
+                    return;
+            }
+
             var offset = moveUp ? -1 : 1;
             if ((moveUp && idx == 0) || (!moveUp && idx == _listView.Items.Count - 1))
                 return;
@@ -131,13 +164,40 @@ namespace MidiDriverOrderForKorg
         private void InvalidateControlsForSelection()
         {
             var isSelected = _listView.SelectedItems.Count != 0;
-            _tsUp.Enabled = _miMoveUp.Enabled = isSelected && _listView.SelectedItems[0].Index > 0;
-            _tsDown.Enabled = _miMoveDown.Enabled = isSelected && _listView.SelectedItems[0].Index < _listView.Items.Count - 1;
+            var selIdx = isSelected ? _listView.SelectedItems[0].Index : -1;
+
+            bool canMoveUp = isSelected && selIdx > 0;
+            bool canMoveDown = isSelected && selIdx < _listView.Items.Count - 1;
+
+            if (_hasWdmaud2)
+            {
+                if (selIdx == 0 || selIdx == 1)
+                {
+                    canMoveUp = false;
+                    canMoveDown = false;
+                }
+                if (selIdx == 2)
+                {
+                    canMoveUp = false;
+                }
+            }
+
+            _tsUp.Enabled = _miMoveUp.Enabled = canMoveUp;
+            _tsDown.Enabled = _miMoveDown.Enabled = canMoveDown;
             _lvmiCopyRegKeyToClipboard.Enabled = _miCopyRegKeyToClipboard.Enabled = isSelected;
         }
 
         private void DoSave()
         {
+            if (_hasWdmaud2)
+            {
+                var res = MessageBox.Show($"{Midi2Msg}\n\nDo you want to proceed?", 
+                    "Warning", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+                if (res != DialogResult.Yes)
+                    return;
+            }
+
+            
             var idx = Utils.MidiAliasLowIdx;
             try
             {
@@ -187,11 +247,17 @@ namespace MidiDriverOrderForKorg
                 return;
 
             var nextIdx = 0;
+            if (_hasWdmaud2)
+                nextIdx = 2;
+
             _listView.BeginUpdate();
             try
             {
                 foreach (var item in list)
                 {
+                    if (item.Index < nextIdx && _hasWdmaud2)
+                        continue; // Special drivers at 0, 1 should not be moved if they were Korg (unlikely but safe)
+
                     if (item.Index != nextIdx)
                     {
                         _listView.Items.RemoveAt(item.Index);
@@ -213,6 +279,10 @@ namespace MidiDriverOrderForKorg
         private void Form1_Shown(object sender, EventArgs e)
         {
             DoRefresh();
+            if (_hasWdmaud2)
+            {
+                MessageBox.Show($"{Midi2Msg}\n\nmidi & midi1 aliases cannot be moved", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void OnRefresh_Click(object sender, EventArgs e)
